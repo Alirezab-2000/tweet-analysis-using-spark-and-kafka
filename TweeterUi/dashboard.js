@@ -7,7 +7,7 @@ var port = 8081;
 let client = new kafka.KafkaClient("localhost:9092");
 
 consumer = new kafka.Consumer(
-    client, [{ topic: 't1', partitions: 0 }, { topic: 'emotion', partitions: 1 }], { autoCommit: false });
+    client, [{ topic: 't1', partitions: 0 }, { topic: 'emotion', partitions: 1 }, { topic: 'classification', partitions: 2 }], { autoCommit: false });
 
 // classification_consumer = new kafka.Consumer(
 //     client, [{ topic: 'classification', partition: 0 }], { groupId: 'group2' }, { autoCommit: false });
@@ -44,6 +44,9 @@ consumer.on('message', function (message) {
     } else if(first_part == "\"hashtag_result") {
         console.log(222, first_part , info)
         io.emit('hashtag', info)
+    }else if(first_part == "\"classification_result") {
+        console.log(222, first_part , info)
+        io.emit('classification', info)
     }
 
 });

@@ -11,8 +11,9 @@
         var hashtags = [];
         var counts = [];
 
-        let classifications = []
-        let classification_counts = []
+        let classifications = ["Family & Relationships","Society & Culture","Entertainment & Music","Business & Finance","Health",
+                                    "Sports","Education & Reference","Politics & Government", "Science & Mathematics", "Computers & Internet"]
+        let classification_counts = [0,0,0,0,0,0,0,0,0,0]
 
         let emotions = ["anger","disgust","fear","joy","neutral","sadness","surprise"]
         let emotion_counts = [0,0,0,0,0,0,0]
@@ -100,7 +101,7 @@
             //     text: 'Top 10 hashtags'  
             // },
             xAxis : {
-                categories: hashtags,
+                categories: classifications,
                 title: {
                     text: null
                 }
@@ -108,7 +109,7 @@
             yAxis : {
                 min: 0,
                 title: {
-                    text: 'Hashtag count',
+                    text: 'classificationed tweet count',
                     align: 'high'
                 },
                 labels: {
@@ -236,6 +237,17 @@
                 emotion_counts[emotion_index] = data[emotion]
             emotionChart.series[0].update({data:emotion_counts})
             emotionChart.redraw();
+            }
+        });
+
+        socket.on('classification', function(message){
+            console.log("classification", message);
+            var data = JSON.parse(message);
+            for(classification in data){
+                classification_index = classifications.findIndex((x) => x === classification)
+                classification_counts[classification_index] = data[classification]
+                classificationChart.series[0].update({data:classification_counts})
+                classificationChart.redraw();
             }
         });
     });

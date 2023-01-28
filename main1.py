@@ -22,10 +22,9 @@ classificationTokenizer = AutoTokenizer.from_pretrained("jonaskoenig/topic_class
 classificationModel = AutoModelForSequenceClassification.from_pretrained("jonaskoenig/topic_classification_04", from_tf=True)
 classificationPipline = pipeline('text-classification', model=classificationModel, tokenizer=classificationTokenizer)
 
-
-emotionTokenizer = AutoTokenizer.from_pretrained("j-hartmann/emotion-english-distilroberta-base")
-emotionModel = AutoModelForSequenceClassification.from_pretrained("j-hartmann/emotion-english-distilroberta-base")
-emotionPipline = pipeline("text-classification", model=emotionModel, tokenizer=emotionTokenizer)
+# emotionTokenizer = AutoTokenizer.from_pretrained("j-hartmann/emotion-english-distilroberta-base")
+# emotionModel = AutoModelForSequenceClassification.from_pretrained("j-hartmann/emotion-english-distilroberta-base")
+# emotionPipline = pipeline("text-classification", model=emotionModel, tokenizer=emotionTokenizer)
 
 # Write to mongoDB in batches
 def write_row(batch_df, batch_id):
@@ -50,7 +49,7 @@ def write_classification_row(batch_df, batch_id):
     data = batch_df.toPandas().set_index('classification_result').to_dict()["count"]
     first_10_pairs = {k: data[k] for k in list(data)[:10]}
     print(first_10_pairs)
-    kafka_emotion_producer.send("classification", first_10_pairs)
+    kafka_emotion_producer.send("classification", "classification_result@@"+str(first_10_pairs))
     batch_df.write.format("console").mode("append").save()
     pass
 
@@ -58,6 +57,7 @@ def write_classification_row(batch_df, batch_id):
 def is_hashtag(word):
     word = str(word).replace("#_","").replace("# "," ")
     return str(word).__contains__("#")
+
 
 def create_spark_session(app_name):
     return SparkSession \
@@ -95,39 +95,12 @@ if __name__ == "__main__":
         .select(from_json("twitter_data", schema=twitter_schema).alias("twitter_data"))
     tweeter_data = twitter_records.select("twitter_data")
     tweeter_data = tweeter_data.select("twitter_data.*")
-
-    print(1234,classificationPipline("I like you. I love you"))
-    # classification_twitter_stream_df = classification_spark.readStream.format("kafka") \
-    #     .option("kafka.bootstrap.servers", "localhost:9092") \
-    #     .option("subscribe", "twitter") \
-    #     .option("startingOffsets", "latest") \
-    #     .option("max.poll.records", 100) \
-    #     .option("failOnDataLoss", False) \
-    #     .load()
-    # classification_twitter_records = classification_twitter_stream_df.selectExpr("CAST(key AS STRING)", "CAST(value as STRING) as twitter_data") \
-    #     .select(from_json("twitter_data", schema=twitter_schema).alias("twitter_data"))
-    # classification_tweeter_data = classification_twitter_records.select("twitter_data")
-    # classification_tweeter_data = classification_tweeter_data.select("twitter_data.*")
     
-    # emotion_twitter_stream_df = emotion_spark.readStream.format("kafka") \
-    #     .option("kafka.bootstrap.servers", "localhost:9092") \
-    #     .option("subscribe", "twitter") \
-    #     .option("startingOffsets", "latest") \
-    #     .option("max.poll.records", 100) \
-    #     .option("failOnDataLoss", False) \
-    #     .load()
-    # emotion_twitter_records = emotion_twitter_stream_df.selectExpr("CAST(key AS STRING)", "CAST(value as STRING) as twitter_data") \
-    #     .select(from_json("twitter_data", schema=twitter_schema).alias("twitter_data"))
-    # emotion_tweeter_data = emotion_twitter_records.select("twitter_data")
-    # emotion_tweeter_data = emotion_tweeter_data.select("twitter_data.*")
-    
-
     print(44, tweeter_data)
 
     tweeter_data.printSchema()
 
     filter_udf = udf(lambda row: [x for x in row if is_hashtag(x)], ArrayType(StringType()))
-
 
 
     df = (
@@ -147,50 +120,22 @@ if __name__ == "__main__":
         .sort("count", ascending=False)
     )
 
-    emotion_udf = udf(lambda row: emotionPipline(row)[0]['label'], StringType())
+    # emotion_udf = udf(lambda row: emotionPipline(row)[0]['label'], StringType())
 
-    emotion_df = (
-        tweeter_data.withColumn("emotion_result", emotion_udf(F.col("text")))
-        .groupBy("emotion_result")
-        .count()
-        .sort("count", ascending=False)
-    )
+    # emotion_df = (
+    #     tweeter_data.withColumn("emotion_result", emotion_udf(F.col("text")))
+    #     .groupBy("emotion_result")
+    #     .count()
+    #     .sort("count", ascending=False)
+    # )
 
-    # df.writeStream.outputMode("complete").foreachBatch(write_row).start().awaitTermination()
 
     hashtag_stram = df.writeStream.outputMode("complete").foreachBatch(write_row).start()
-    emotion_stream = emotion_df.writeStream.outputMode("complete").foreachBatch(write_emotion_row).start()
-    # classififcation_stream = classification_df.writeStream.outputMode("complete").foreachBatch(write_classification_row).start().awaitTermination()
+    # emotion_stream = emotion_df.writeStream.outputMode("complete").foreachBatch(write_emotion_row).start()
+    classififcation_stream = classification_df.writeStream.outputMode("complete").foreachBatch(write_classification_row).start()
 
+    classififcation_stream.awaitTermination()
     hashtag_stram.awaitTermination()
-    emotion_stream.awaitTermination()
-
-    # query = df.writeStream \
-    #     .outputMode("complete") \
-    #     .format("console") \
-    #     .start() \
-    #     .awaitTermination(10)
-
-    # df \
-    #     .selectExpr("CAST(word AS STRING) AS key", "CAST(count AS STRING) AS value") \
-    #     .writeStream \
-    #     .format("kafka") \
-    #     .option("kafka.bootstrap.servers", "localhost:9092") \
-    #     .option("topic", "t1") \
-    #     .option("checkpointLocation", "t1check/") \
-    #     .outputMode("complete") \
-    #     .start() \
-    # .awaitTermination(1)
-
-    # ds = df.selectExpr("CAST(word AS STRING) AS key", "CAST(count AS STRING) AS value") \
-    #     .writeStream \
-    #     .format("kafka") \
-    #     .outputMode("complete") \
-    #     .option("kafka.bootstrap.servers", "localhost:9092") \
-    #     .option("topic", "t1") \
-    #     .option("checkpointLocation", "./sparkCheckpoint") \
-    #     .trigger(processingTime='1000 seconds') \
-    # .start() \
-    # .awaitTermination()
+    # emotion_stream.awaitTermination()
 
     print("Finish...")
