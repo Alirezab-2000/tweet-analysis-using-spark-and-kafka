@@ -1,0 +1,242 @@
+<div id='container' style="height:100%;width:100%;"></div>
+<div id='emotion_container' style="height:100%;width:100%;"></div>
+<div id='classification_container' style="height:100%;width:100%;"></div>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script src="http://code.highcharts.com/highcharts.js"></script>
+<script src="http://code.highcharts.com/modules/exporting.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var socket = io();
+        var hashtags = [];
+        var counts = [];
+
+        let classifications = []
+        let classification_counts = []
+
+        let emotions = ["anger","disgust","fear","joy","neutral","sadness","surprise"]
+        let emotion_counts = [0,0,0,0,0,0,0]
+
+        Highcharts.setOptions({
+            global: {
+                useUTC: false
+            }
+        });
+
+        chart = new Highcharts.Chart({
+            chart : {
+                renderTo: 'container',
+                type: 'bar'
+            },
+            title : {
+                text: 'Tweet Analysis'   
+            },
+            subtitle : {
+                text: 'Top 10 hashtags'  
+            },
+            xAxis : {
+                categories: hashtags,
+                title: {
+                    text: null
+                }
+            },
+            yAxis : {
+                min: 0,
+                title: {
+                    text: 'Hashtag count',
+                    align: 'high'
+                },
+                labels: {
+                    overflow: 'justify'
+                }
+            },
+            tooltip : {
+                valueSuffix: ' Numbers'
+            },
+            plotOptions : {
+                bar: {
+                    dataLabels: {
+                        enabled: true
+                    }
+                },
+                series: {
+                    stacking: 'normal'
+                }
+            },
+            legend : {
+                layout: 'vertical',
+                align: 'right',
+                verticalAlign: 'top',
+                x: -40,
+                y: 100,
+                floating: true,
+                borderWidth: 1,
+            
+                backgroundColor: (
+                    (Highcharts.theme && Highcharts.theme.legendBackgroundColor)
+                    || '#FFFFFF'),
+                shadow: true
+            },
+            credits : {
+                enabled: false
+            },
+            series : [
+            {
+                name: 'Count',
+                data: counts
+            }
+            ]
+        });
+
+        classificationChart = new Highcharts.Chart({
+            chart : {
+                renderTo: 'classification_container',
+                type: 'bar'
+            },
+            title : {
+                text: 'Tweet classifications Analysis'   
+            },
+            // subtitle : {
+            //     text: 'Top 10 hashtags'  
+            // },
+            xAxis : {
+                categories: hashtags,
+                title: {
+                    text: null
+                }
+            },
+            yAxis : {
+                min: 0,
+                title: {
+                    text: 'Hashtag count',
+                    align: 'high'
+                },
+                labels: {
+                    overflow: 'justify'
+                }
+            },
+            tooltip : {
+                valueSuffix: ' Numbers'
+            },
+            plotOptions : {
+                bar: {
+                    dataLabels: {
+                        enabled: true
+                    }
+                },
+                series: {
+                    stacking: 'normal'
+                }
+            },
+            legend : {
+                layout: 'vertical',
+                align: 'right',
+                verticalAlign: 'top',
+                x: -40,
+                y: 100,
+                floating: true,
+                borderWidth: 1,
+            
+                backgroundColor: (
+                    (Highcharts.theme && Highcharts.theme.legendBackgroundColor)
+                    || '#FFFFFF'),
+                shadow: true
+            },
+            credits : {
+                enabled: false
+            },
+            series : [
+            {
+                name: 'Count',
+                data: classification_counts
+            }
+            ]
+        });
+
+        emotionChart = new Highcharts.Chart({
+            chart : {
+                renderTo: 'emotion_container',
+                type: 'bar'
+            },
+            title : {
+                text: 'Tweet emotions Analysis'   
+            },
+            xAxis : {
+                categories: emotions,
+                title: {
+                    text: null
+                }
+            },
+            yAxis : {
+                min: 0,
+                title: {
+                    text: 'emotions count',
+                    align: 'high'
+                },
+                labels: {
+                    overflow: 'justify'
+                }
+            },
+            tooltip : {
+                valueSuffix: ' Numbers'
+            },
+            plotOptions : {
+                bar: {
+                    dataLabels: {
+                        enabled: true
+                    }
+                },
+                series: {
+                    stacking: 'normal'
+                }
+            },
+            legend : {
+                layout: 'vertical',
+                align: 'right',
+                verticalAlign: 'top',
+                x: -40,
+                y: 100,
+                floating: true,
+                borderWidth: 1,
+            
+                backgroundColor: (
+                    (Highcharts.theme && Highcharts.theme.legendBackgroundColor)
+                    || '#FFFFFF'),
+                shadow: true
+            },
+            credits : {
+                enabled: false
+            },
+            series : [
+            {
+                name: 'Count',
+                data: emotion_counts
+            }
+            ]
+        });
+
+        socket.on('hashtag', function(message){
+            console.log("hashtag", message)
+            var data = JSON.parse(message);
+            hashtags.length = 0;
+            counts.length = 0;
+            for(hashtag in data){
+                hashtags.push(hashtag);
+                counts.push(data[hashtag]);
+            chart.series[0].update({data:counts})
+            chart.redraw();
+            }
+        });
+
+        socket.on('emotion', function(message){
+            console.log("emotion", message);
+            var data = JSON.parse(message);
+            for(emotion in data){
+                emotion_index = emotions.findIndex((x) => x === emotion)
+                emotion_counts[emotion_index] = data[emotion]
+            emotionChart.series[0].update({data:emotion_counts})
+            emotionChart.redraw();
+            }
+        });
+    });
+</script>

@@ -1,0 +1,5 @@
+consumer_key = """i7gHPoAnPHyMH8zG28CpZOjwh"""
+consumer_secret = """veo3BO4e1tmU25yIq5qCDxJxBYekHF8nYh42PwkaN1oSGgfQG2"""
+access_token = """1354126804781510656-dGUTbLBQjNvMd5KZ9hFa1h3uZ02aiK"""
+access_secret = """t3mnYacPX26mvkrp6HDEvT6tMwXt2TWFjbTKyMdd8b8oo"""
+bearer_token = """AAAAAAAAAAAAAAAAAAAAADEJjQEAAAAAQoEyuMUYg%2F2rjF8TJ%2BPVzXqrnrE%3DRw7FLXOIl24UoQ2uJ1l0bC6fKIUJwuPmZNDEp7FQIezkZtr7d5"""
