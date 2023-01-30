@@ -12,37 +12,6 @@ import tensorflow as tf
 kafka_producer2 = KafkaProducer(bootstrap_servers=["localhost:9092"],
                                 value_serializer=lambda v: json.dumps(v).encode('utf-8'))
 kafka_classification_producer = KafkaProducer(bootstrap_servers=["localhost:9092"],
-                                value_serializer=lambda v: json.dumps(v).encode('utf-8'))
-kafka_emotion_producer = KafkaProducer(bootstrap_servers=["localhost:9092"],
-                                value_serializer=lambda v: json.dumps(v).encode('utf-8'))
-
-
-
-classificationTokenizer = AutoTokenizer.from_pretrained("jonaskoenig/topic_classification_04")
-classificationModel = AutoModelForSequenceClassification.from_pretrained("jonaskoenig/topic_classification_04", from_tf=True)
-classificationPipline = pipeline('text-classification', model=classificationModel, tokenizer=classificationTokenizer)
-
-# emotionTokenizer = AutoTokenizer.from_pretrained("j-hartmann/emotion-english-distilroberta-base")
-# emotionModel = AutoModelForSequenceClassification.from_pretrained("j-hartmann/emotion-english-distilroberta-base")
-# emotionPipline = pipeline("text-classification", model=emotionModel, tokenizer=emotionTokenizer)
-
-def write_row(batch_df, batch_id):
-    data = batch_df.toPandas().set_index('word').to_dict()["count"]
-    first_10_pairs = {k: data[k] for k in list(data)[:10]}
-    print(first_10_pairs)
-    kafka_producer2.send("t1", "hashtag_result@@"+str(first_10_pairs))
-    batch_df.write.format("console").mode("append").save()
-    pass
-
-def write_emotion_row(batch_df, batch_id):
-    # print(1111, batch_df)
-    data = batch_df.toPandas().set_index('emotion_result').to_dict()["count"]
-    first_10_pairs = {k: data[k] for k in list(data)[:7]}
-    print(first_10_pairs)
-    kafka_emotion_producer.send("emotion", "emotion_result@@"+str(first_10_pairs))
-    batch_df.write.format("console").mode("append").save()
-    pass
-
                                               value_serializer=lambda v: json.dumps(v).encode('utf-8'))
 kafka_emotion_producer = KafkaProducer(bootstrap_servers=["localhost:9092"],
                                        value_serializer=lambda v: json.dumps(v).encode('utf-8'))
@@ -52,10 +21,10 @@ classificationModel = AutoModelForSequenceClassification.from_pretrained("jonask
                                                                          from_tf=True)
 classificationPipline = pipeline('text-classification', model=classificationModel, tokenizer=classificationTokenizer)
 
-emotionTokenizer = AutoTokenizer.from_pretrained("j-hartmann/emotion-english-distilroberta-base")
-emotionModel = AutoModelForSequenceClassification.from_pretrained("j-hartmann/emotion-english-distilroberta-base")
-emotionPipline = pipeline("text-classification", model=emotionModel, tokenizer=emotionTokenizer)
 
+# emotionTokenizer = AutoTokenizer.from_pretrained("j-hartmann/emotion-english-distilroberta-base")
+# emotionModel = AutoModelForSequenceClassification.from_pretrained("j-hartmann/emotion-english-distilroberta-base")
+# emotionPipline = pipeline("text-classification", model=emotionModel, tokenizer=emotionTokenizer)
 
 def write_hashtag_row(batch_df, batch_id):
     data = batch_df.toPandas().set_index('word').to_dict()["count"]
@@ -79,14 +48,12 @@ def write_classification_row(batch_df, batch_id):
     data = batch_df.toPandas().set_index('classification_result').to_dict()["count"]
     first_10_pairs = {k: data[k] for k in list(data)[:10]}
     print(first_10_pairs)
-    kafka_emotion_producer.send("classification", "classification_result@@"+str(first_10_pairs))
-    kafka_emotion_producer.send("classification", first_10_pairs)
+    kafka_emotion_producer.send("classification", "classification_result@@" + str(first_10_pairs))
     batch_df.write.format("console").mode("append").save()
     pass
 
 
 def is_hashtag(word):
-    word = str(word).replace("#_","").replace("# "," ")
     word = str(word).replace("#_", "").replace("# ", " ")
     return str(word).__contains__("#")
 
@@ -98,19 +65,12 @@ def create_spark_session(app_name):
         .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.3") \
         .getOrCreate()
 
-os.environ['PYSPARK_PYTHON'] = sys.executable
-os.environ['PYSPARK_DRIVER_PYTHON'] = sys.executable
-
-if __name__ == "__main__":
-
-    spark = create_spark_session("Sentiment_Analysis_TW")
-    # classification_spark = create_spark_session("classification")
-    # emotion_spark = create_spark_session("emotion")
 
 os.environ['PYSPARK_PYTHON'] = sys.executable
 os.environ['PYSPARK_DRIVER_PYTHON'] = sys.executable
 
 if __name__ == "__main__":
+
     spark = create_spark_session("Sentiment_Analysis_TW")
 
     twitter_schema = StructType([
@@ -131,7 +91,6 @@ if __name__ == "__main__":
     tweeter_data.printSchema()
 
     filter_udf = udf(lambda row: [x for x in row if is_hashtag(x)], ArrayType(StringType()))
-
 
     df = (
         tweeter_data.withColumn("word", F.explode(filter_udf(F.split(F.col("text"), " "))))
@@ -159,28 +118,13 @@ if __name__ == "__main__":
     #     .sort("count", ascending=False)
     # )
 
-
-    hashtag_stram = df.writeStream.outputMode("complete").foreachBatch(write_row).start()
+    hashtag_stram = df.writeStream.outputMode("complete").foreachBatch(write_hashtag_row).start()
     # emotion_stream = emotion_df.writeStream.outputMode("complete").foreachBatch(write_emotion_row).start()
-    classififcation_stream = classification_df.writeStream.outputMode("complete").foreachBatch(write_classification_row).start()
+    classififcation_stream = classification_df.writeStream.outputMode("complete").foreachBatch(
+        write_classification_row).start()
 
     classififcation_stream.awaitTermination()
     hashtag_stram.awaitTermination()
     # emotion_stream.awaitTermination()
 
     print("Finish...")
-    emotion_udf = udf(lambda row: emotionPipline(row)[0]['label'], StringType())
-
-    emotion_df = (
-        tweeter_data.withColumn("emotion_result", emotion_udf(F.col("text")))
-        .groupBy("emotion_result")
-        .count()
-        .sort("count", ascending=False)
-    )
-
-    hashtag_stram = df.writeStream.outputMode("complete").foreachBatch(write_hashtag_row).start()
-    emotion_stream = emotion_df.writeStream.outputMode("complete").foreachBatch(write_emotion_row).start()
-    # classififcation_stream = classification_df.writeStream.outputMode("complete").foreachBatch(write_classification_row).start().awaitTermination()
-
-    hashtag_stram.awaitTermination()
-    emotion_stream.awaitTermination()
