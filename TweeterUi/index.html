@@ -11,14 +11,9 @@
         var hashtags = [];
         var counts = [];
 
-<<<<<<< HEAD
         let classifications = ["Family & Relationships","Society & Culture","Entertainment & Music","Business & Finance","Health",
                                     "Sports","Education & Reference","Politics & Government", "Science & Mathematics", "Computers & Internet"]
         let classification_counts = [0,0,0,0,0,0,0,0,0,0]
-=======
-        let classifications = []
-        let classification_counts = []
->>>>>>> d2d5765 (clean code)
 
         let emotions = ["anger","disgust","fear","joy","neutral","sadness","surprise"]
         let emotion_counts = [0,0,0,0,0,0,0]
@@ -106,11 +101,7 @@
             //     text: 'Top 10 hashtags'  
             // },
             xAxis : {
-<<<<<<< HEAD
                 categories: classifications,
-=======
-                categories: hashtags,
->>>>>>> d2d5765 (clean code)
                 title: {
                     text: null
                 }
@@ -118,11 +109,7 @@
             yAxis : {
                 min: 0,
                 title: {
-<<<<<<< HEAD
                     text: 'classificationed tweet count',
-=======
-                    text: 'Hashtag count',
->>>>>>> d2d5765 (clean code)
                     align: 'high'
                 },
                 labels: {
@@ -252,7 +239,6 @@
             emotionChart.redraw();
             }
         });
-<<<<<<< HEAD
 
         socket.on('classification', function(message){
             console.log("classification", message);
@@ -264,7 +250,5 @@
                 classificationChart.redraw();
             }
         });
-=======
->>>>>>> d2d5765 (clean code)
     });
 </script>

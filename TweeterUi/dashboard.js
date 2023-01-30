@@ -43,12 +43,9 @@ consumer.on('message', function (message) {
     } else if(first_part == "\"hashtag_result") {
         console.log(222, first_part , info)
         io.emit('hashtag', info)
-<<<<<<< HEAD
     }else if(first_part == "\"classification_result") {
         console.log(222, first_part , info)
         io.emit('classification', info)
-=======
->>>>>>> d2d5765 (clean code)
     }
 
 });
