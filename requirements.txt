@@ -43,18 +43,11 @@ tensorboard-data-server==0.6.1
 tensorboard-plugin-wit==1.8.1
 tensorflow==2.11.0
 tensorflow-estimator==2.11.0
-<<<<<<< HEAD
 tensorflow-intel==2.11.0
 tensorflow-io-gcs-filesystem==0.30.0
 termcolor==2.2.0
 tokenizers==0.13.2
 torch==1.13.1
-=======
-tensorflow-io-gcs-filesystem==0.30.0
-termcolor==2.2.0
-tokenizers==0.13.2
-# torch==1.13.1
->>>>>>> d2d5765 (clean code)
 tqdm==4.64.1
 transformers==4.26.0
 tweepy==4.12.1
